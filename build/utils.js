@@ -38,7 +38,7 @@ exports.cssLoaders = function(options, isVue = true) {
                 fallback: fallbackLoader
             })
         } else {
-            return fallbackLoader.concat(loaders)
+            return [fallbackLoader].concat(loaders)
         }
     }
 
@@ -57,7 +57,7 @@ exports.cssLoaders = function(options, isVue = true) {
 // Generate loaders for standalone style files (outside of .vue)
 exports.styleLoaders = function(options) {
     var output = []
-    var loaders = exports.cssLoaders(options)
+    var loaders = exports.cssLoaders(options,false)
     for (var extension in loaders) {
         var loader = loaders[extension]
         output.push({

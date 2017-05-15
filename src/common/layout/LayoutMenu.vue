@@ -1,124 +1,145 @@
-<template>
-    <div class="layout-menu">
-        <!-- <Menu active-key="1-2" width="auto" :open-keys="['1']">
-            <Submenu key="1" name="1">
-                <template slot="title">
-                    <Icon type="ios-navigate"></Icon>
-                    导航一
-                </template>
-                <Menu-item key="1-1" name="1-1"><router-link to="/" exact>page index</router-link></Menu-item>
-                <Menu-item key="1-1" name="1-1"><router-link to="/priceSet" exact>priceSet</router-link></Menu-item>
-                <Menu-item key="1-1" name="1-1"><router-link to="/orderList" exact>运单管理</router-link></Menu-item>
-            </Submenu>
-        </Menu>
-        <Menu active-key="1-2" width="auto" :open-keys="['1']">
-            <Submenu key="1" name="1">
-                <template slot="title">
-                    <Icon type="ios-navigate"></Icon>
-                    导航二
-                </template>
-                <Menu-item key="1-2" name="1-2"><router-link to="/product" exact>product</router-link></Menu-item>
-                <Menu-item key="1-3" name="1-2"><router-link to="/product-list" exact>product</router-link></Menu-item>
-            </Submenu>
-        </Menu> -->
-        <Menu  @on-select="selectMenu"
-            :open-names = "openedMenu" 
-            width="auto" ref="layoutmenu">
-            <Submenu key="1" :name="item.menu_id" v-for="item in menuList">
-                <template slot="title">
-                    <Icon :type="item.icon" size="20" style="width:20px;vertical-align:middle;    margin-bottom: 2px;"></Icon>
-                    <span style="line-height:25px;">{{item.menu_name}}</span>
-                </template>
-                <Menu-item 
-                    v-for="child in item.menu_childs" 
-                    :name="child.menu_url"
-                    :key="child">
-                    <router-link :to="child.menu_url" exact>
-                    <Icon style="width:10px;"></Icon>
-                    {{child.menu_name}}
-                    </router-link>
-                </Menu-item>
-            </Submenu>
-        </Menu>
-    </div>
-</template>
 <script>
-    export default {
-        name: 'layoutMenu',
-        data: function() {
-            return {
-                menuList: [],
-                serverHost: (process.env.NODE_ENV === 'development' ? '/dev' : ''),
-                successResult: 1,
-                openedMenu: [],
-            }
-        },
-        created:function(){
-            this.initdata();
-        },
-        methods: {
-            initdata: function() {
-                let vm = this;
-                httpServer.GET("/menu/listForCache", {
-                }, function(data) {
-                    if (data.result == vm.successResult) {
-                        vm.menuList = data.resultObj;
-                        vm.$store.state.menuList = vm.menuList;
-                      
-                        //alert(sessionStorage.getItem("routerName"));
-                        for (let menu of vm.menuList) {
-                            for (let child of menu.menu_childs) {
-                                if (child.menu_url === (vm.$store.state.routerName || sessionStorage.getItem("routerName")) && vm.$route.name!='hello') {
-                                    vm.openedMenu = [child.parent_menu_id];
-                                }
-                            }
-                        }
+import { Menu, MenuItem, Submenu, Icon } from 'iview'
+import { find } from 'lodash'
 
-                        vm.$nextTick(function() {
-                            // vm.$refs.layoutmenu.updateActiveName()
-                            vm.$refs.layoutmenu.updateOpened()
-                        })
-                    } else {
-                        vm.$Message.error(data.resultInfo);
-                    }
-
-                });
-            },
-            selectMenu:function(name){
-                let vm = this;
-                sessionStorage.setItem("routerName",name);
-                vm.$store.state.routerName=name;
-            }
-        }
+export default {
+  name: 'sidebar',
+  data() {
+    return {
+      leaf: Object.freeze(null),
+      path: Object.freeze([])
     }
-
-
+  },
+  // 树形菜单及数组型菜单（后续可以在sidebar组件内生成树形菜单，这样参数只需传递一个）
+  props: {
+    menusTree: {
+      required: true,
+      type: Array
+    },
+    menus: {
+      required: true,
+      type: Array
+    },
+    theme: {
+      type: String,
+      default: 'dark'
+    }
+  },
+  watch: {
+    // 路由变化重新渲染菜单
+    '$route': function (v) {
+      this.initLeaf(v.path)
+      // 手动更新openItems（iview这好坑。。。）
+      this.$nextTick(() => {
+        if (this.$refs.sidebarMenu) {
+          this.$refs.sidebarMenu.updateOpened()
+        }
+      })
+    },
+    // 检测menus，确保可以获取到leaf
+    menus(v) {
+      if (v.length) {
+        this.initLeaf(this.$route.path)
+      }
+    }
+  },
+  methods: {
+    // 获取选中叶子节点（默认第一个叶子结点）
+    initLeaf(path) {
+      let matchLeaf = null
+      // 查看菜单中是否有匹配项
+      for (let menu of this.menus) {
+        if (menu.menu_path === path) {
+          matchLeaf = menu
+          break
+        }
+      }
+      // 未找到匹配项，默认取菜单第一个叶子结点并跳转该路由
+      if (!matchLeaf) {
+        for (let menu of this.menus) {
+          if (menu.menu_path) {
+            this.$router.replace(menu.menu_path)
+            return
+          }
+        }
+      }
+      // 获取选中节点及其祖先节点
+      let _leaf = matchLeaf
+      let _paths = []
+      while (_leaf) {
+        _paths.unshift(_leaf)
+        _leaf = find(this.menus, r => {
+          return r.menu_id === _leaf.parent_menu_id
+        })
+      }
+      // 数据整理及回传（layout接收）
+      this.$emit('menu-click', { paths: _paths, leaf: matchLeaf })
+      this.path = Object.freeze(_paths)
+      this.leaf = Object.freeze(matchLeaf)
+    },
+    // sidebar菜单点击事件
+    leafClick(menu) {
+      this.$router.push(menu.menu_path)
+    },
+    // 生成菜单JSX语法树
+    generator(menus) {
+      return menus.map(menu => {
+        if (menu.children && menu.children.length) {
+          return (<Submenu name={menu.menu_id}>
+            <template slot="title">
+              <Icon class="mr10" type="ios-navigate"></Icon>
+              {menu.menu_name}
+            </template>
+            {this.generator(menu.children)}
+          </Submenu>)
+        }
+        // 节点属性及事件定义
+        const data = {
+          nativeOn: {
+            click: this.leafClick.bind(this, menu)
+          },
+          props: {
+            name: menu.menu_id
+          }
+        }
+        return (<Menu-item {...data}>
+          {menu.menu_name}
+        </Menu-item>)
+      })
+    }
+  },
+  // 第一次点击sidebar菜单会触发三次render，待查
+  render(h) {
+    if (!this.leaf) {
+      return <div>菜单准备中。。。刷新页面！</div>
+    }
+    console.log(this.$route)
+    let menusJSX = this.generator(this.menusTree, true)
+    // 取出当前选中菜单，并展开其父节点
+    let activeName = this.leaf.menu_id
+    let openNames = this.path.slice(1).map(r => r.parent_menu_id)
+    let data = {
+      props: {
+        activeName,
+        openNames,
+        theme: this.theme,
+        width: 'auto'
+      },
+      ref: 'sidebarMenu'
+    }
+    return (
+      <Menu {...data}>
+        {menusJSX}
+      </Menu>
+    )
+  }
+}
 </script>
-<style scoped lang="scss">
-    @import "../customer/sass/helper/_variable.scss";
-   .layout-menu{
-        float: left;
-        position: absolute;
-        left: 0;
-        top: $headerHeight;
-        width: $menuWidth;
-        height: 100%;
-        overflow-y: auto;
-        .ivu-menu-vertical .ivu-menu-submenu .ivu-menu-item{
-            padding: 0;
-            a{
-                display: block;
-                padding: 14px 24px 14px 43px;
-                color: #333;
-            }
-        }
-        .ivu-menu-light.ivu-menu-vertical .ivu-menu-item-active:not(.ivu-menu-submenu){
-            border-right: none;
-        }
-        .router-link-active,.ivu-menu-item-selected a{
-            background-color: $default;
-            color: #fff!important;
-            border-right: 2px solid #39f;
-        }
-   }
+<style lang="scss" scoped>
+// @import '../../../scss/_variable';
+.ivu-menu-item:not(.ivu-menu-item-selected) {
+  &:hover {
+    color: $primary !important;
+  }
+}
 </style>

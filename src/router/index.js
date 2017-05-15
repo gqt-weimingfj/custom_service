@@ -2,15 +2,16 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import routes from './routes'
-import store from '@/vuex/vuex'
-import rootVue from '../main';
+import store from '@/store'
+import appVue from '@/main'
 Vue.use(Router)
-
-let router = new Router({routes});
+const router = new Router({routes});
 // let noFilter = ['hello', 'orderAdd'] 
 router.beforeEach((to, from, next) => {
- 	if (to.matched.some(record => record.meta.openRight)) {
+	// console.dir(store)
+ 	if (to.matched.some(record => !record.meta.requiresAuth)) {
  		//不需要登录页面
+		// console.log(to)
  		next();
  	} else {
  		// 需要登录页面 判断登陆状态
@@ -59,6 +60,7 @@ router.beforeEach((to, from, next) => {
  		// 		path: '/login',
  		// 	});
  		// }
+ 		next();
  	}
 });
 

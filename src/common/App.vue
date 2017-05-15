@@ -1,13 +1,11 @@
 <template>
-	<Lyout v-if="isLogin">
-		<router-view slot="layout-content"></router-view>
-	</Lyout>
-
-	<router-view v-else="!isLogin"></router-view>
+	<div id="app">
+		<router-view></router-view>
+	</div>
 </template>
 
 <script>
-import Lyout from '@/components/Layout.vue';
+// import Layout from '@/common/layout/Layout';
 
 export default {
 	  name: 'app',
@@ -16,11 +14,11 @@ export default {
 	  	}
 	  },
 	  computed: {
-	  	isLogin() {
-	  		return this.$store.state.isLogin;
-	  	}
+	  	// isLogin() {
+	  	// 	return this.$store.state.isLogin;
+	  	// }
 	  },
-	  components: {Lyout}
+	  // components: {Layout}
 }
 </script>
 

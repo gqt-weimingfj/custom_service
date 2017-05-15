@@ -1,59 +1,56 @@
 <template>
     <div id="layoutHeader" class="layout-header">
-        <img src="../assets/logo.png" height="40" width="242" class="logo">
         <div class="user-info">
-            <h5>浙江未名揽配</h5>
-            <span>{{user.user_name}}</span> | <span>cds-揽配管理员</span>
+            <img class="avatar" :src="userInfo.avatar"></img>
+            欢迎你,
+            <b>{{userInfo.name}}</b>
         </div>
-        <div class="right-box">
-           <router-link :to="{name: 'orderAdd'}"> <button class="btn-order">开单</button></router-link>
-            <button class="btn-logout" @click="logout()">退出</button>
-        </div>
+        <span class="fr">
+            登出<button class="btn-logout" @click="logout()">退出</button>
+        </span>
     </div>
 </template>
 <script>
     export default {
         name: 'layoutHeader',
+        props: {
+            userInfo: {
+                require: true,
+                type: Object
+            },
+            logout: {
+                require: true
+            }
+        },
 		data(){
 		    return{
-			     user: {}
 			}
-		 },
-		 created() {
-		     this.user = JSON.parse(sessionStorage.getItem("user") || '{}');
-	     },
-        methods: {
-            logout: function () {
-                let vm = this;
-				//退出清除session
-				httpServer.GET("/user/logout",{},function(data){});
-				localStorage.removeItem('user');
-                let isLogin = vm.$store.state.isLogin;
-                console.log(this.$store.state.isLogin)
-                vm.$store.commit('setIsLogin',false);
-                vm.$router.replace('/login')
-            }
-        }
+		},
+		 
     }
 </script>
 <style scoped lang="scss">
-    @import "../customer/sass/helper/_variable.scss";
+    @import "../../scss/helper/_variable.scss";
     .layout-header{
         position: absolute;
         top: 0;
-        left: 0;
-        width: 100%;
+        left: $menuWidth;
+        right: 0;
         height: $headerHeight;
-        border-bottom: 3px solid $default;
-        .logo{
-            margin: 8px 15px 0 10px;
-            vertical-align: bottom; 
-        }
+        padding: 17px 25px 0 50px;
+        background: #fff;
+        color: #333;
         .user-info{
+            float: left;
             display: inline-block;
-            h5{
-                font-size: 14px;
-                font-weight: normal;
+            font-size: 14px;
+            color: #363b49;
+            .avatar{
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                margin-right: 5px;
+                vertical-align: middle;
             }
             span{
                 display: inline-block;
@@ -62,28 +59,23 @@
                 font-weight: bold;
             }
         }
-        .right-box{
-            float: right;
-            margin-top: 11px;
+        .fr{
+            font-size: 14px;
             button{
-                min-width: 80px;
-                background-color: #fff;
                 height: 34px;
                 border: 1px solid $default;
                 border-radius: 20px;
+                background-color: #fff;
                 cursor: pointer;
                 &:focus{
                     box-shadow: none;
                     -webkit-box-shadow: none;
                     outline: none;
                 }
-                &.btn-order{
-                    border: 1px solid $default;
-                    border-radius: 20px;
-
-                }
                 &.btn-logout{
-
+                    width: 38px;
+                    height: 38px;
+                    margin-left: 5px;
                 }
             }
         }
